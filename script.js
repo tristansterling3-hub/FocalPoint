@@ -1,7 +1,7 @@
 let currentPage = 1;
 let currentQuery = "";
 let currentCategory = "all";
-const accessKey = "L4qf31bFXKpPBkP5bHzil-pLepiex28oQPu9m819ZNo"; // your Unsplash Access Key
+const accessKey = "YOUR ACCESS KEY HERE"; // your Unsplash Access Key
 
 const form = document.getElementById("moodForm");
 const gallery = document.getElementById("gallery");
