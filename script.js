@@ -1,144 +1,226 @@
+/* =========================
+   FocalPoint – App Logic
+   ========================= */
+
+// Replace this with your Unsplash Access Key (NOT secret key)
+const ACCESS_KEY = "YOUR_UNSPLASH_ACCESS_KEY_HERE";
+
 let currentPage = 1;
 let currentQuery = "";
-let currentCategory = "all";
-const accessKey = "YOUR ACCESS KEY HERE"; // your Unsplash Access Key
 
 const form = document.getElementById("moodForm");
+const queryInput = document.getElementById("query");
 const gallery = document.getElementById("gallery");
 const errorMsg = document.getElementById("error");
 const loadMoreBtn = document.getElementById("loadMore");
-const categoryLinks = document.querySelectorAll('.category-filter');
-const mainSearchInput = document.getElementById('query');
-const sidebarSearchInput = document.getElementById('sidebarSearch');
+const newBoardBtn = document.getElementById("newBoard");
+const savedBoardsBtn = document.getElementById("savedBoards");
+const toggleThemeBtn = document.getElementById("toggleTheme");
+const saveBoardBtn = document.getElementById("saveBoard");
+const viewBoardsBtn = document.getElementById("viewBoards");
 
-function setActiveCategory(category) {
-  if (!categoryLinks) return;
-  categoryLinks.forEach(l => {
-    if (l.getAttribute('data-category') === category) l.classList.add('active');
-    else l.classList.remove('active');
-  });
-}
+// ================= Theme (persisted)
+(function initTheme(){
+  const savedTheme = localStorage.getItem("focalpoint_theme");
+  if (savedTheme === "dark") {
+    document.body.classList.add("dark-mode");
+  }
+})();
+toggleThemeBtn.addEventListener("click", () => {
+  document.body.classList.toggle("dark-mode");
+  localStorage.setItem(
+    "focalpoint_theme",
+    document.body.classList.contains("dark-mode") ? "dark" : "light"
+  );
+});
 
-// Category click -> use category as the search term
-if (categoryLinks) {
-  categoryLinks.forEach(link => {
-    link.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const category = link.getAttribute('data-category');
-      currentCategory = category || 'all';
-        // keep any typed query; we'll combine category + query when searching
-        currentQuery = (mainSearchInput.value || '').trim();
-      setActiveCategory(currentCategory);
+// ================= Generate / Load More
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  currentQuery = queryInput.value.trim();
+  if (!currentQuery) return;
 
-      currentPage = 1;
-      gallery.innerHTML = '';
-      errorMsg.textContent = 'Loading images...';
-      if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+  currentPage = 1;
+  gallery.innerHTML = loadingUI();
+  errorMsg.textContent = "";
+  loadMoreBtn.style.display = "none";
 
-      await loadImages();
-    });
-  });
-}
+  await loadImages();
+});
 
-// Main form submit -> use text input as search across all categories
-if (form) {
-  form.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    currentQuery = (mainSearchInput.value || '').trim();
-    // keep the currentCategory so searches combine (category + query)
-
-    if (!currentQuery) return;
-
-    currentPage = 1;
-    gallery.innerHTML = '';
-    errorMsg.textContent = 'Loading images...';
-    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
-
-    await loadImages();
-  });
-}
-
-// Optional: allow the small sidebar search box to submit on Enter
-if (sidebarSearchInput) {
-  sidebarSearchInput.addEventListener('keydown', async (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      currentQuery = (sidebarSearchInput.value || '').trim();
-      // keep currentCategory so sidebar search combines with selected category if any
-
-      if (!currentQuery) return;
-
-      currentPage = 1;
-      gallery.innerHTML = '';
-      errorMsg.textContent = 'Loading images...';
-      if (loadMoreBtn) loadMoreBtn.style.display = 'none';
-
-      await loadImages();
-    }
-  });
-}
-
-if (loadMoreBtn) {
-  loadMoreBtn.addEventListener('click', async () => {
-    currentPage++;
-    await loadImages();
-  });
-}
+loadMoreBtn.addEventListener("click", async () => {
+  currentPage++;
+  await loadImages();
+});
 
 async function loadImages() {
-  // Combine category + query when both exist. Examples:
-  // - category=technology, query=neon -> "technology neon"
-  // - category=technology, query empty -> "technology"
-  // - category=all, query=neon -> "neon"
-  const q = (currentQuery || '').trim();
-  let searchTerm = '';
-  if (currentCategory && currentCategory !== 'all') {
-    searchTerm = q ? `${currentCategory} ${q}` : currentCategory;
-  } else {
-    searchTerm = q;
-  }
-  if (!searchTerm) {
-    errorMsg.textContent = 'Please enter a search term or select a category.';
-    return;
-  }
-
   try {
-    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerm)}&page=${currentPage}&per_page=30&client_id=${accessKey}`;
-    const response = await fetch(url);
+    const url =
+      `https://api.unsplash.com/search/photos` +
+      `?query=${encodeURIComponent(currentQuery)}` +
+      `&page=${currentPage}&per_page=30&client_id=${ACCESS_KEY}`;
 
-    if (!response.ok) throw new Error('Failed to fetch images.');
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Unsplash request failed");
+    const data = await res.json();
 
-    const data = await response.json();
-
-    if (currentPage === 1) gallery.innerHTML = '';
-    errorMsg.textContent = '';
+    if (currentPage === 1) gallery.innerHTML = "";
 
     if (!data.results || data.results.length === 0) {
       if (currentPage === 1) {
-        errorMsg.textContent = 'No images found. Try another keyword.';
+        gallery.innerHTML = "";
+        errorMsg.textContent = "No images found. Try another theme.";
       } else {
-        errorMsg.textContent = 'No more images to load.';
-        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+        errorMsg.textContent = "No more images to load.";
+        loadMoreBtn.style.display = "none";
       }
       return;
     }
 
-    data.results.forEach(photo => {
-      const img = document.createElement('img');
-      img.src = photo.urls.small;
-      img.alt = photo.alt_description || 'Moodboard image';
-      gallery.appendChild(img);
-    });
+    renderImagesWithPalettes(data.results);
 
-    if (data.total_pages && data.total_pages > currentPage) {
-      if (loadMoreBtn) loadMoreBtn.style.display = 'block';
+    // show Load More if more pages exist
+    if (data.total_pages > currentPage) {
+      loadMoreBtn.style.display = "inline-flex";
     } else {
-      if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+      loadMoreBtn.style.display = "none";
     }
 
   } catch (err) {
     console.error(err);
-    errorMsg.textContent = 'Error loading images. Please check your API key or network connection.';
-    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+    errorMsg.textContent = "Error loading images. Check your API key or network.";
+    loadMoreBtn.style.display = "none";
   }
 }
+
+function renderImagesWithPalettes(items){
+  const colorThief = new ColorThief();
+  items.forEach(photo => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const wrap = document.createElement("div");
+    wrap.className = "imgwrap";
+
+    const img = document.createElement("img");
+    img.crossOrigin = "anonymous";
+    img.src = photo.urls.small;
+    img.alt = photo.alt_description || "Moodboard image";
+
+    wrap.appendChild(img);
+    card.appendChild(wrap);
+
+    // Palette container
+    const pal = document.createElement("div");
+    pal.className = "palette";
+
+    img.addEventListener("load", () => {
+      try {
+        // getPalette(image, n) returns [[r,g,b], ...]
+        const palette = colorThief.getPalette(img, 5);
+        palette.forEach(rgb => {
+          const sw = document.createElement("div");
+          sw.className = "swatch";
+          sw.style.backgroundColor = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+          pal.appendChild(sw);
+        });
+      } catch(e){
+        // silently ignore if crossOrigin blocks or similar
+      }
+    });
+
+    card.appendChild(pal);
+    gallery.appendChild(card);
+  });
+}
+
+function loadingUI(){
+  return `
+    <div style="display:flex;align-items:center;gap:10px;justify-content:center;padding:16px;">
+      <span class="loader"></span>
+      <span>Loading images…</span>
+    </div>
+  `;
+}
+
+// ================= Board actions
+newBoardBtn.addEventListener("click", () => {
+  queryInput.value = "";
+  currentQuery = "";
+  currentPage = 1;
+  gallery.innerHTML = "";
+  errorMsg.textContent = "";
+  loadMoreBtn.style.display = "none";
+  queryInput.focus();
+});
+
+// Save current board (HTML snapshot) to localStorage
+saveBoardBtn.addEventListener("click", () => {
+  if (!gallery.children.length) {
+    alert("Generate a moodboard first, then save.");
+    return;
+  }
+  const boards = JSON.parse(localStorage.getItem("focalpoint_boards") || "[]");
+  boards.push({
+    id: Date.now(),
+    query: currentQuery || "(untitled)",
+    html: gallery.innerHTML,
+    ts: new Date().toISOString()
+  });
+  localStorage.setItem("focalpoint_boards", JSON.stringify(boards));
+  alert("Board saved!");
+});
+
+// View saved boards (renders them below)
+viewBoardsBtn.addEventListener("click", () => {
+  const boards = JSON.parse(localStorage.getItem("focalpoint_boards") || "[]");
+  if (!boards.length) {
+    alert("No saved boards yet.");
+    return;
+  }
+  gallery.innerHTML = "";
+  boards
+    .slice() // copy
+    .reverse() // newest first
+    .forEach(b => {
+      const section = document.createElement("div");
+      section.style.marginBottom = "18px";
+      const meta = document.createElement("div");
+      meta.style.margin = "8px 0 6px";
+      meta.style.color = "var(--muted)";
+      meta.style.fontSize = ".95rem";
+      meta.textContent = `Saved: ${new Date(b.ts).toLocaleString()} • Query: ${b.query}`;
+      const box = document.createElement("div");
+      box.className = "gallery";
+      box.innerHTML = b.html;
+
+      section.appendChild(meta);
+      section.appendChild(box);
+      gallery.appendChild(section);
+    });
+
+  errorMsg.textContent = "";
+  loadMoreBtn.style.display = "none";
+});
+
+// Download current grid as PNG
+document.getElementById("downloadBoard").addEventListener("click", async () => {
+  if (!gallery.children.length) {
+    alert("Nothing to download. Generate a board first.");
+    return;
+  }
+  const boardWrapper = document.getElementById("boardWrapper");
+  try {
+    const canvas = await html2canvas(boardWrapper, {backgroundColor: null, useCORS: true});
+    const link = document.createElement("a");
+    link.download = "FocalPoint-Moodboard.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  } catch(e){
+    console.error(e);
+    alert("Could not capture the board. Try again after images finish loading.");
+  }
+});
+
+// Quick access buttons in sidebar
+savedBoardsBtn.addEventListener("click", () => viewBoardsBtn.click());

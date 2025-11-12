@@ -2,64 +2,60 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎨 FocalPoint</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎯 FocalPoint – AI Moodboard Generator</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <header class="main-header">
-    <div class="header-content">
-      <h2>🎨 FocalPoint</h2>
-      <nav>
-        <ul>
-          <li><a href="#" class="active">Home</a></li>
-          <li><a href="#">Gallery</a></li>
-          <li><a href="#">About</a></li>
-          <li><a href="#">Contact</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="brand">FocalPoint</div>
+    <ul class="menu">
+      <li><button id="newBoard" class="linklike">➕ New Board</button></li>
+      <li><button id="savedBoards" class="linklike">💾 Saved Boards</button></li>
+      <li><button id="toggleTheme" class="linklike">🌓 Toggle Theme</button></li>
+      <li><a class="ext" href="https://unsplash.com" target="_blank" rel="noopener">📸 Unsplash</a></li>
+      <li><a class="ext" href="https://github.com" target="_blank" rel="noopener">🐙 GitHub</a></li>
+    </ul>
+    <div class="sidebar-footer">© 2025 Tristan Sterling</div>
+  </aside>
 
-  <div class="sidebar">
-    <div class="search-container">
-      <input type="text" id="sidebarSearch" placeholder="Search galleries...">
-      <i class="fas fa-search search-icon"></i>
-    </div>
-    <div class="sidebar-menu">
-      <h3>Categories</h3>
-      <ul>
-          <li><a href="#" class="category-filter" data-category="food"><i class="fas fa-utensils"></i> Food</a></li>
-          <li><a href="#" class="category-filter" data-category="architecture"><i class="fas fa-building"></i> Architecture</a></li>
-          <li><a href="#" class="category-filter" data-category="travel"><i class="fas fa-plane"></i> Travel</a></li>
-          <li><a href="#" class="category-filter" data-category="music"><i class="fas fa-music"></i> Music</a></li>
-          <li><a href="#" class="category-filter" data-category="lifestyle"><i class="fas fa-heart"></i> Lifestyle</a></li>
-          <li><a href="#" class="category-filter" data-category="technology"><i class="fas fa-microchip"></i> Technology</a></li>
-          <li><a href="#" class="category-filter active" data-category="all"><i class="fas fa-globe"></i> All Categories</a></li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="main-content">
+  <!-- Main content -->
   <div class="container">
-  <h1>🎨 FocalPoint</h1>
-    <p>Enter a mood or theme and get AI-curated images from Unsplash!</p>
+    <header class="topbar">
+      <h1>🎯 FocalPoint</h1>
+      <div class="top-actions">
+        <button id="downloadBoard" class="btn secondary">Download Moodboard</button>
+      </div>
+    </header>
 
-    <form id="moodForm">
-      <input type="text" id="query" name="query" placeholder="e.g. futuristic tech, cozy café" required />
-      <button type="submit">Generate Moodboard</button>
-    </form>
+    <!-- Search / Actions -->
+    <section class="controls">
+      <form id="moodForm" autocomplete="off">
+        <input type="text" id="query" name="query" placeholder="Try: minimalist workspace, cozy café, cyberpunk neon" required/>
+        <button type="submit" class="btn primary">Generate Moodboard</button>
+      </form>
 
-    <div id="gallery" class="gallery"></div>
+      <div class="action-row">
+        <button id="loadMore" class="btn outline" style="display:none;">Load More</button>
+        <button id="saveBoard" class="btn ghost">Save Board</button>
+        <button id="viewBoards" class="btn ghost">View Saved</button>
+      </div>
+    </section>
 
-    <!-- Load More button (hidden until needed) -->
-    <button id="loadMore" style="display:none;">Load More</button>
+    <!-- Board -->
+    <section id="boardWrapper">
+      <div id="gallery" class="gallery"></div>
+    </section>
 
     <p id="error" class="error"></p>
-    </div>
   </div>
 
+  <!-- Libraries for features -->
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
+
+  <!-- App logic -->
   <script src="script.js"></script>
 </body>
 </html>
