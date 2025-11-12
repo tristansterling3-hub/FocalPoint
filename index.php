@@ -29,6 +29,11 @@
       <button class="filter-btn" data-theme="travel">✈️ Travel</button>
     </div>
 
+    <!-- ✨ Clear Filters Button -->
+    <button id="clearFilters" class="btn ghost small" style="margin-top:10px; width:100%;">
+      ✨ Clear Filters
+    </button>
+
     <div class="sidebar-footer">© 2025 Tristan Sterling</div>
   </aside>
 
@@ -45,10 +50,9 @@
 
       <section class="controls">
         <form id="moodForm" autocomplete="off">
-  <input type="text" id="query" placeholder="Try: minimalist workspace, cozy café..." required />
-  <button type="submit" class="btn primary">Generate</button>
-</form>
-
+          <input type="text" id="query" placeholder="Try: minimalist workspace, cozy café..." required />
+          <button type="submit" class="btn primary">Generate</button>
+        </form>
 
         <div class="action-row">
           <button id="loadMore" class="btn outline" style="display:none;">Load More</button>
@@ -90,7 +94,7 @@
     </section>
   </div>
 
-  <!-- Popup -->
+  <!-- Popup / Modal -->
   <div id="imageModal" class="popup">
     <div class="popup-content">
       <span id="closeModal" class="close">&times;</span>
@@ -106,6 +110,7 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="script.js"></script>
 </body>

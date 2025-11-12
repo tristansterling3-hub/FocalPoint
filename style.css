@@ -65,6 +65,7 @@ body {
 .side-heading { font-size: 0.95rem; color: #ccc; margin-bottom: 8px; }
 
 .filter-list { display: flex; flex-direction: column; gap: 6px; }
+
 .filter-btn {
   border: 1px solid #333; background: #1e1e1e; color: #eee;
   border-radius: 6px; padding: 8px; cursor: pointer;
@@ -72,10 +73,33 @@ body {
 }
 .filter-btn:hover { background: #333; }
 
+/* Active filter styling */
 .filter-btn.active {
   background-color: #0078ff;
   color: white;
   border-color: #005fcc;
+  font-weight: 600;
+}
+
+/* ✨ Clear Filters Button */
+#clearFilters {
+  background: transparent;
+  color: #00b37a;
+  border: 1px dashed #00b37a;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 10px;
+  padding: 8px;
+  width: 100%;
+  transition: all 0.25s ease;
+}
+
+#clearFilters:hover {
+  background: #00b37a;
+  color: white;
+  border-style: solid;
+  transform: scale(1.03);
 }
 
 .sidebar-footer {
@@ -94,12 +118,14 @@ body {
   width: calc(100% - 260px);
   min-height: 100vh;
 }
+
 .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
+
 .topbar h1 { font-size: 1.6rem; font-weight: 600; }
 
 /* ===== Buttons ===== */
@@ -151,6 +177,7 @@ body {
   gap: 18px;
   justify-items: center;
 }
+
 .card {
   background: var(--card);
   border-radius: 12px;

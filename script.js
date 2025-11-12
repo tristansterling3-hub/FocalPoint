@@ -1,7 +1,8 @@
 /* ====== GLOBAL SETTINGS ====== */
-const ACCESS_KEY = "YOUR-ACCESS-KEY";
+const ACCESS_KEY = "L4qf31bFXKpPBkP5bHzil-pLepiex28oQPu9m819ZNo";
 let currentQuery = "";
 let currentPage = 1;
+let activeFilters = new Set();
 
 // Apply dark mode if saved
 const savedTheme = localStorage.getItem("theme");
@@ -17,7 +18,7 @@ document.addEventListener("click", e => {
   }
 });
 
-/* ====== INTERNAL PAGE NAVIGATION ====== */
+/* ====== PAGE NAVIGATION ====== */
 document.querySelectorAll("button.nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const pageId = btn.getAttribute("data-page");
@@ -25,7 +26,6 @@ document.querySelectorAll("button.nav-btn").forEach(btn => {
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
     document.getElementById(pageId).classList.add("active");
 
-    // Highlight active sidebar button
     document.querySelectorAll("button.nav-btn").forEach(b => b.classList.remove("active-btn"));
     btn.classList.add("active-btn");
 
@@ -34,7 +34,7 @@ document.querySelectorAll("button.nav-btn").forEach(btn => {
   });
 });
 
-/* ====== ACTIVE SIDEBAR STYLES ====== */
+/* ====== SIDEBAR ACTIVE STYLE ====== */
 const style = document.createElement("style");
 style.innerHTML = `
 .active-btn { background: #0078ff !important; color: white !important; }
@@ -42,100 +42,6 @@ style.innerHTML = `
 .link-page:hover { background: #222; color: #fff; }
 `;
 document.head.appendChild(style);
-
-/* ====== FILTER BUTTONS (SMART FILTERS WITH FALLBACK) ====== */
-document.querySelectorAll(".filter-btn").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    const filterWord = btn.getAttribute("data-theme");
-    if (!filterWord) return;
-
-    const input = document.getElementById("query");
-    const gallery = document.getElementById("gallery");
-    const homeGallery = document.getElementById("homeGallery");
-    const homeMessage = document.getElementById("homeMessage");
-
-    const baseQuery = (input && input.value.trim()) || currentQuery || "";
-    const isSearchEmpty = !baseQuery;
-    currentQuery = isSearchEmpty ? filterWord : `${baseQuery} ${filterWord}`;
-    currentPage = 1;
-
-    // Highlight active filter
-    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-
-    // Case 1: Home Page filtering
-    if (homeGallery && homeGallery.offsetParent !== null) {
-      homeMessage.textContent = isSearchEmpty
-        ? `Showing random ${filterWord} inspiration...`
-        : `Fetching ${currentQuery}...`;
-
-      try {
-        // Use random endpoint if no search term
-        const endpoint = isSearchEmpty
-          ? `https://api.unsplash.com/photos/random?count=15&query=${encodeURIComponent(
-              filterWord
-            )}&client_id=${ACCESS_KEY}`
-          : `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-              currentQuery
-            )}&per_page=15&client_id=${ACCESS_KEY}`;
-
-        const res = await fetch(endpoint);
-        const data = await res.json();
-
-        homeGallery.innerHTML = "";
-        const results = isSearchEmpty ? data : data.results;
-
-        results.forEach(photo => {
-          const card = document.createElement("div");
-          card.className = "card";
-          const img = document.createElement("img");
-          img.src = photo.urls.small;
-          img.alt = currentQuery;
-          img.addEventListener("click", () => openModal(photo));
-          card.appendChild(img);
-          homeGallery.appendChild(card);
-        });
-
-        homeMessage.textContent = "";
-      } catch {
-        homeMessage.textContent = "⚠️ Could not load images.";
-      }
-    }
-
-    // Case 2: Moodboard/Search page
-    else if (gallery) {
-      gallery.innerHTML = "<p class='muted'>Applying filter...</p>";
-      try {
-        // If no base search, fetch random filter images
-        if (isSearchEmpty) {
-          const res = await fetch(
-            `https://api.unsplash.com/photos/random?count=15&query=${encodeURIComponent(
-              filterWord
-            )}&client_id=${ACCESS_KEY}`
-          );
-          const data = await res.json();
-          gallery.innerHTML = "";
-          data.forEach(photo => {
-            const card = document.createElement("div");
-            card.className = "card";
-            const img = document.createElement("img");
-            img.src = photo.urls.small;
-            img.addEventListener("click", () => openModal(photo));
-            card.appendChild(img);
-            gallery.appendChild(card);
-          });
-        } else {
-          await fetchImages(currentQuery, 1, gallery);
-        }
-
-        const loadMoreBtn = document.getElementById("loadMore");
-        if (loadMoreBtn) loadMoreBtn.style.display = "block";
-      } catch {
-        gallery.innerHTML = "<p class='error'>Error loading filtered images.</p>";
-      }
-    }
-  });
-});
 
 /* ====== FETCH FUNCTION ====== */
 async function fetchImages(query, page, container) {
@@ -187,7 +93,103 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-/* ====== POPUP / MODAL ====== */
+/* ====== STACKABLE MULTI-FILTERS ====== */
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const filterWord = btn.getAttribute("data-theme");
+    if (!filterWord) return;
+
+    // Toggle active filter
+    if (activeFilters.has(filterWord)) {
+      activeFilters.delete(filterWord);
+      btn.classList.remove("active");
+    } else {
+      activeFilters.add(filterWord);
+      btn.classList.add("active");
+    }
+
+    const input = document.getElementById("query");
+    const baseQuery = (input && input.value.trim()) || "";
+    const filtersText = Array.from(activeFilters).join(" ");
+    const combinedQuery = baseQuery
+      ? `${baseQuery} ${filtersText}`.trim()
+      : filtersText || "";
+
+    currentQuery = combinedQuery;
+    currentPage = 1;
+
+    const homeGallery = document.getElementById("homeGallery");
+    const moodGallery = document.getElementById("gallery");
+    const homeMessage = document.getElementById("homeMessage");
+    const targetGallery =
+      homeGallery && homeGallery.offsetParent !== null ? homeGallery : moodGallery;
+
+    if (!targetGallery) return;
+
+    if (homeMessage)
+      homeMessage.textContent = activeFilters.size
+        ? `Fetching ${combinedQuery || "random"} inspiration...`
+        : baseQuery
+        ? `Showing results for ${baseQuery}...`
+        : "Fetching random inspiration...";
+
+    targetGallery.innerHTML = "<p class='muted'>Loading images...</p>";
+
+    try {
+      let results = [];
+      if (!combinedQuery) {
+        const res = await fetch(
+          `https://api.unsplash.com/photos/random?count=15&client_id=${ACCESS_KEY}`
+        );
+        results = await res.json();
+      } else {
+        const res = await fetch(
+          `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+            combinedQuery
+          )}&per_page=15&client_id=${ACCESS_KEY}`
+        );
+        const data = await res.json();
+        results = data.results || data;
+      }
+
+      targetGallery.innerHTML = "";
+      results.forEach(photo => {
+        const card = document.createElement("div");
+        card.className = "card";
+        const img = document.createElement("img");
+        img.src = photo.urls.small;
+        img.alt = combinedQuery;
+        img.addEventListener("click", () => openModal(photo));
+        card.appendChild(img);
+        targetGallery.appendChild(card);
+      });
+
+      if (homeMessage) homeMessage.textContent = "";
+    } catch (err) {
+      console.error("Filter load error:", err);
+      targetGallery.innerHTML =
+        "<p class='error'>⚠️ Error fetching filtered images.</p>";
+    }
+  });
+});
+
+/* ====== CLEAR FILTERS ====== */
+const clearBtn = document.getElementById("clearFilters");
+if (clearBtn) {
+  clearBtn.addEventListener("click", () => {
+    activeFilters.clear();
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    currentQuery = "";
+    const gallery = document.getElementById("gallery");
+    const homeGallery = document.getElementById("homeGallery");
+    if (gallery)
+      gallery.innerHTML = "<p class='muted'>Filters cleared. Try a new search!</p>";
+    if (homeGallery)
+      homeGallery.innerHTML = "<p class='muted'>Filters cleared. Explore again!</p>";
+  });
+}
+
+/* ====== MODAL ====== */
 const modal = document.getElementById("imageModal");
 const modalImg = document.getElementById("modalImage");
 const relatedGallery = document.getElementById("relatedGallery");
@@ -197,8 +199,6 @@ function openModal(photo) {
   modal.dataset.photo = JSON.stringify(photo);
   modalImg.src = photo.urls.regular;
   updateModalButtons(photo.urls.small);
-
-  // Load related photos by ID
   if (relatedGallery) loadRelatedImages(photo.id);
 }
 
@@ -208,18 +208,13 @@ function openUrlInModal(url) {
   modalImg.src = url;
   modal.dataset.photo = JSON.stringify(photoObj);
   updateModalButtons(url);
-
-  // Fallback: load related using keyword from URL
   if (relatedGallery) loadRelatedImages("", getKeywordFromUrl(url));
 }
 
 async function loadRelatedImages(photoId, queryFallback = "") {
   relatedGallery.innerHTML = "<p class='muted'>Loading related images...</p>";
-
   try {
     let data;
-
-    // Try official Unsplash "related" endpoint first if we have a photo ID
     if (photoId) {
       const res = await fetch(
         `https://api.unsplash.com/photos/${photoId}/related?client_id=${ACCESS_KEY}`
@@ -230,7 +225,6 @@ async function loadRelatedImages(photoId, queryFallback = "") {
       }
     }
 
-    // Fallback: keyword search when photoId missing or results empty
     if (!data || data.length === 0) {
       if (!queryFallback) {
         relatedGallery.innerHTML = "<p class='muted'>No related images found.</p>";
@@ -245,7 +239,6 @@ async function loadRelatedImages(photoId, queryFallback = "") {
       data = searchData.results;
     }
 
-    // Render related thumbnails
     relatedGallery.innerHTML = "";
     data.forEach(p => {
       const img = document.createElement("img");
@@ -259,11 +252,9 @@ async function loadRelatedImages(photoId, queryFallback = "") {
   }
 }
 
-
-
 document.getElementById("closeModal").onclick = () => (modal.style.display = "none");
 
-/* ====== LIKE / SAVE TOGGLE ====== */
+/* ====== LIKE / SAVE ====== */
 const likeBtn = document.getElementById("likeImage");
 const saveBtn = document.getElementById("saveImageToFolder");
 
@@ -271,13 +262,16 @@ function updateModalButtons(url) {
   const liked = JSON.parse(localStorage.getItem("likedImages") || "[]");
   likeBtn.textContent = liked.includes(url) ? "💔 Unlike" : "❤️ Like";
   likeBtn.dataset.liked = liked.includes(url);
-
-  saveBtn.textContent = isImageInAnyFolder(url) ? "🗑 Remove from Folder" : "💾 Save to Folder";
+  saveBtn.textContent = isImageInAnyFolder(url)
+    ? "🗑 Remove from Folder"
+    : "💾 Save to Folder";
 }
 
 function isImageInAnyFolder(url) {
   const folderData = JSON.parse(localStorage.getItem("folderBoards") || "{}");
-  return Object.values(folderData).some(folder => folder.some(item => item.html.includes(url)));
+  return Object.values(folderData).some(folder =>
+    folder.some(item => item.html.includes(url))
+  );
 }
 
 if (likeBtn) {
@@ -302,8 +296,6 @@ if (saveBtn) {
     const folderData = JSON.parse(localStorage.getItem("folderBoards") || "{}");
     const photo = JSON.parse(modal.dataset.photo);
     const url = photo.urls.small;
-
-    // check if exists in any folder
     const exists = isImageInAnyFolder(url);
     if (exists) {
       for (const [folder, items] of Object.entries(folderData)) {
@@ -326,7 +318,7 @@ if (saveBtn) {
   });
 }
 
-/* ====== LIKED PHOTOS PAGE ====== */
+/* ====== LIKED & FOLDER PAGES ====== */
 function renderLikedPhotos() {
   const gallery = document.getElementById("likesGallery");
   const message = document.getElementById("likesMessage");
@@ -348,7 +340,6 @@ function renderLikedPhotos() {
   });
 }
 
-/* ====== FOLDER PAGE ====== */
 function renderFolderPage() {
   const folderList = document.getElementById("folderListPage");
   const message = document.getElementById("folderMessage");
@@ -383,7 +374,6 @@ function renderFolderPage() {
       }
     });
 
-    // Delete Folder
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "btn small secondary";
     deleteBtn.textContent = "🗑 Delete Folder";
@@ -408,7 +398,6 @@ function renderFolderPage() {
   });
 }
 
-/* ====== FOLDER IMAGE CLICK ====== */
 document.addEventListener("click", e => {
   if (e.target.matches(".clickable-folder-img")) {
     const url = e.target.dataset.full || e.target.src;
@@ -422,7 +411,11 @@ function openFolder(folderName) {
   const folder = folderData[folderName];
   if (!folder) return alert("Folder not found");
   const newWin = window.open("", "_blank");
-  newWin.document.write(`<title>${folderName} - FocalPoint</title><style>body{font-family:Poppins,sans-serif;background:#121212;color:white;display:flex;flex-wrap:wrap;gap:10px;padding:20px;justify-content:center;}img{width:200px;height:200px;object-fit:cover;border-radius:10px;cursor:pointer;transition:transform 0.25s;}img:hover{transform:scale(1.05);}</style>`);
+  newWin.document.write(`<title>${folderName} - FocalPoint</title>
+  <style>body{font-family:Poppins,sans-serif;background:#121212;color:white;
+  display:flex;flex-wrap:wrap;gap:10px;padding:20px;justify-content:center;}
+  img{width:200px;height:200px;object-fit:cover;border-radius:10px;cursor:pointer;
+  transition:transform 0.25s;}img:hover{transform:scale(1.05);}</style>`);
   folder.forEach(item => {
     const temp = document.createElement("div");
     temp.innerHTML = item.html;
@@ -452,7 +445,6 @@ async function loadHomePage() {
   });
 
   const combined = [...new Set([...liked, ...savedImages])];
-
   if (combined.length > 0) {
     homeTitle.textContent = "✨ Welcome Back — Your Inspiration Board";
     renderHomeImages(combined);
@@ -466,7 +458,9 @@ async function loadHomePage() {
   async function loadRandomImages() {
     homeMessage.textContent = "Fetching random inspiration...";
     try {
-      const res = await fetch(`https://api.unsplash.com/photos/random?count=15&client_id=${ACCESS_KEY}`);
+      const res = await fetch(
+        `https://api.unsplash.com/photos/random?count=15&client_id=${ACCESS_KEY}`
+      );
       const data = await res.json();
       renderHomeImages(data.map(p => p.urls.small));
       homeMessage.textContent = "";
@@ -488,12 +482,11 @@ async function loadHomePage() {
     });
   }
 }
+
 function getKeywordFromUrl(url) {
-  // Tries to extract something meaningful from the image URL
   const parts = url.split("/");
   const guess = parts[parts.length - 2] || "inspiration";
   return guess.replace(/[-_0-9]/g, "");
 }
-
 
 document.addEventListener("DOMContentLoaded", loadHomePage);
