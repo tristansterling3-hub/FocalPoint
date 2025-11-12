@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/preview.png" width="900" alt="FocalPoint Moodboard Preview">
+  <img src="assets/assetspreview.png" width="900" alt="FocalPoint Moodboard Preview">
   <br>
   <em>Dark Mode — Personalized Inspiration Board</em>
 </p>
