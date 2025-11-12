@@ -1,5 +1,4 @@
 <img width="2510" height="1288" alt="image" src="https://github.com/user-attachments/assets/8b154b74-480d-4161-b251-35e717df971d" /><p align="center">
-  <img src="assets/preview.png" width="900" >
   <br>
   <em>Dark Mode — Personalized Inspiration Board</em>
 </p>
