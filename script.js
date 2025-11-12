@@ -1,5 +1,5 @@
 /* ====== GLOBAL SETTINGS ====== */
-const ACCESS_KEY = "L4qf31bFXKpPBkP5bHzil-pLepiex28oQPu9m819ZNo";
+const ACCESS_KEY = "YOUR_ACCESS_KEY_CODE";
 let currentQuery = "";
 let currentPage = 1;
 let activeFilters = new Set();
@@ -490,3 +490,4 @@ function getKeywordFromUrl(url) {
 }
 
 document.addEventListener("DOMContentLoaded", loadHomePage);
+
